@@ -529,3 +529,78 @@ resource "null_resource" "run_execution" {
     command     = "aws stepfunctions start-execution --state-machine-arn ${aws_sfn_state_machine.pipeline.arn} --input file://sf_input.json"
   }
 }
+
+## Turn on S3 → EventBridge ##
+resource "aws_s3_bucket_notification" "lake_events" {
+  bucket      = aws_s3_bucket.lake.id
+  eventbridge = true
+}
+
+## EventBridge rule: listen for S3 “Object Created” in raw/ ##
+resource "aws_cloudwatch_event_rule" "raw_upload" {
+  name        = "${var.name_prefix}-raw-upload"
+  description = "Start Step Function when a new object is created under raw/"
+
+  event_pattern = jsonencode({
+    source        = ["aws.s3"],
+    "detail-type" = ["Object Created"],
+    detail = {
+      bucket = {
+        name = [aws_s3_bucket.lake.id]
+      },
+      object = {
+        key = [{
+          prefix = "raw/"
+        }]
+      }
+    }
+  })
+}
+
+## IAM role for EventBridge to call Step Functions ##
+resource "aws_iam_role" "eventbridge_role" {
+  name = "${var.name_prefix}-eventbridge-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = { Service = "events.amazonaws.com" },
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "eventbridge_policy" {
+  role = aws_iam_role.eventbridge_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect   = "Allow",
+      Action   = ["states:StartExecution"],
+      Resource = aws_sfn_state_machine.pipeline.arn
+    }]
+  })
+}
+
+## Target: start your state machine + pass bucket/key into input ##
+resource "aws_cloudwatch_event_target" "start_pipeline" {
+  rule     = aws_cloudwatch_event_rule.raw_upload.name
+  arn      = aws_sfn_state_machine.pipeline.arn
+  role_arn = aws_iam_role.eventbridge_role.arn
+
+  input_transformer {
+    input_paths = {
+      bucket = "$.detail.bucket.name"
+      key    = "$.detail.object.key"
+    }
+
+    input_template = <<EOT
+{
+  "bucket": <bucket>,
+  "key": <key>
+}
+EOT
+  }
+}
