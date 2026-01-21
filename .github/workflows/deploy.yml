@@ -32,16 +32,6 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Debug backend (confirm state)
-        run: |
-          echo "===== TERRAFORM DEBUG ====="
-          terraform version
-          terraform workspace show
-          terraform providers
-          pwd
-          ls -la
-          test -f backend.tf && echo "backend.tf FOUND" || echo "backend.tf MISSING"
-
       - name: Terraform Format Check
         run: terraform fmt -check
 
