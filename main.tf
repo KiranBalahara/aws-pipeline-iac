@@ -260,10 +260,16 @@ resource "aws_iam_role_policy" "sfn_policy" {
           Resource = aws_lambda_function.prep.arn
         },
         {
-          Effect   = "Allow"
-          Action   = ["glue:StartJobRun"]
+          Effect = "Allow"
+          Action = [
+            "glue:StartJobRun",
+            "glue:GetJobRun",
+            "glue:GetJobRuns",
+            "glue:GetJob"
+          ]
           Resource = aws_glue_job.etl.arn
         }
+
       ],
       var.enable_sns ? [
         {
