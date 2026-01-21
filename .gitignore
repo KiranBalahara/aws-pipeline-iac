@@ -1,0 +1,11 @@
+# Terraform state (DO NOT COMMIT)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+
+# Local build artifacts
+lambda.zip
+
+# OS files
+.DS_Store

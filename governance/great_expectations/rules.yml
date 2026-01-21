@@ -1,0 +1,4 @@
+rules:
+  - name: no_nulls_any_column
+    description: "A row is valid only if all columns have values (no nulls)"
+    type: completeness
