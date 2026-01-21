@@ -320,7 +320,7 @@ resource "aws_sfn_state_machine" "pipeline" {
             Arguments = {
               "--input_bucket.$" = "$.lambda.Payload.input_bucket"
               "--input_key.$"    = "$.lambda.Payload.input_key"
-              "--rules_key" = "governance/ge/rules.yml"
+              "--rules_key"      = "governance/ge/rules.yml"
 
             }
           }
